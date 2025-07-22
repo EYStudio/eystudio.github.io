@@ -1,10 +1,382 @@
-<!DOCTPE html>
-<html>
+<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-<title>EYStudio</title>
-<meta charset="GBK">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Errorsia Yusulif Studio —— 异常点亮创新</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* --- 1. 全局与变量定义 (V3.1 "Stellaris Pink") --- */
+        :root {
+            --pink: #FF4081; /* 活力电光粉 */
+            --cyan: #00BFFF; /* 数字天空蓝 */
+            --light-bg: #F5F7FA; /* 科技白 */
+            --light-card-bg: #FFFFFF; /* 悬浮卡片白 */
+            --text-dark: #1A202C; /* 主要文本-碳灰色 */
+            --text-gray: #5A677D; /* 次要文本-中度灰 */
+            --border-color: #E2E8F0;
+            --font-main: 'Rajdhani', 'Noto Sans SC', sans-serif; /* 引入新字体 */
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+        }
+
+        .container { width: 90%; max-width: 1100px; margin: 0 auto; padding: 120px 0; position: relative; z-index: 2;}
+
+        /* --- 动态粒子背景 --- */
+        #particles-js { position: fixed; width: 100%; height: 100%; top: 0; left: 0; z-index: 0; }
+
+        /* --- 滚动入场动画 --- */
+        .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.8s ease-out, transform 0.8s ease-out; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        /* --- 2. 头部导航栏 (升级) --- */
+        header {
+            position: fixed; top: 0; left: 0; width: 100%; padding: 20px 5%; display: flex; justify-content: space-between; align-items: center; z-index: 1000; transition: all 0.3s ease;
+        }
+        header.scrolled {
+            background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 15px 5%; box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+        }
+        .logo { font-size: 1.8em; font-weight: 700; color: var(--text-dark); text-decoration: none; letter-spacing: 1px; }
+        .logo span { color: var(--pink); }
+        nav ul { list-style: none; display: flex; }
+        nav li { margin-left: 40px; }
+        nav a { text-decoration: none; color: var(--text-dark); font-weight: 700; font-size: 1.1em; position: relative; padding: 5px 0; transition: color 0.3s ease; }
+        nav a:hover { color: var(--pink); }
+        nav a::after {
+            content: ''; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 0; height: 3px; background: var(--pink); /* MODIFIED: Underline color changed to pink */ transition: width 0.3s ease-out; clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+        }
+        nav a:hover::after { width: 100%; }
+
+        /* --- 3. 按钮 (升级) --- */
+        .btn-cyber {
+            display: inline-block; padding: 14px 35px; font-family: var(--font-main); font-weight: 700; font-size: 1em; color: #FFF; background: var(--pink); border: none; text-decoration: none;
+            clip-path: polygon(10% 0, 100% 0, 100% 75%, 90% 100%, 0 100%, 0 25%);
+            position: relative; transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-cyber:hover {
+            transform: translateY(-4px) scale(1.02); box-shadow: 0 12px 30px -8px rgba(255, 64, 129, 0.7);
+        }
+
+        /* --- 4. 首页 Hero 区域 (升级) --- */
+        #home { min-height: 100vh; display: flex; align-items: center; text-align: left; }
+        .hero-content h1 {
+            font-size: 4.8em; font-weight: 700; line-height: 1.15; margin-bottom: 25px; color: var(--text-dark);
+        }
+        .hero-content h1 .highlight-gradient {
+            background: linear-gradient(45deg, var(--pink) 30%, var(--cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-content p { font-size: 1.5em; color: var(--text-gray); max-width: 650px; margin-bottom: 45px; font-weight: 500;}
+
+        /* --- 5. 通用区块标题 (升级) --- */
+        .section-title {
+            text-align: center; margin-bottom: 80px; font-size: 3.2em; font-weight: 700; position: relative; padding-bottom: 20px;
+        }
+        .section-title::before {
+            content: '⬢'; /* Hexagon character */ font-size: 0.3em; color: var(--pink); position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+        }
+        .section-title::after {
+            content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 100px; height: 5px; background-color: var(--pink); /* MODIFIED: Underline color changed to pink */ clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+        }
+
+        /* --- 6. 服务介绍 (升级) --- */
+        #services { background-color: rgba(255, 255, 255, 0.6); clip-path: polygon(0 5%, 100% 0, 100% 95%, 0 100%); }
+        .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+        .service-card {
+            background: var(--light-card-bg); padding: 40px 35px; border: 1px solid var(--border-color);
+            clip-path: polygon(0 15px, 15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .service-card:hover { transform: translateY(-12px); box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.1); border-color: var(--pink); /* ADDED: Pink border on hover */ }
+        .service-icon { margin-bottom: 25px; }
+        .service-icon svg { width: 48px; height: 48px; color: var(--pink); /* MODIFIED: Icon color changed to pink */ }
+        .service-card h3 { color: var(--pink); font-size: 1.5em; margin-bottom: 15px; font-weight: 700; }
+        .service-card p { color: var(--text-gray); font-size: 1.05em; line-height: 1.7; }
+        
+        /* --- 7. 新增: 我们的流程 --- */
+        .process-timeline { position: relative; max-width: 800px; margin: 0 auto; }
+        .process-timeline::after {
+            content: ''; position: absolute; width: 4px; background: var(--border-color); top: 0; bottom: 0; left: 50%; margin-left: -2px;
+        }
+        .process-step { padding: 10px 40px; position: relative; width: 50%; }
+        .process-step.left { left: 0; }
+        .process-step.right { left: 50%; }
+        /* Hexagon node */
+        .process-step::after {
+            content: ''; position: absolute; width: 20px; height: 20px; right: -10px; background-color: var(--pink); /* MODIFIED: Node color changed to pink */ top: 30px; border-radius: 50%; z-index: 1;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            transform: rotate(90deg);
+        }
+        .process-step.right::after { left: -10px; }
+        .process-content {
+            padding: 25px; background-color: var(--light-card-bg); position: relative; border: 1px solid var(--border-color);
+            clip-path: polygon(0 10px, 10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+            transition: border-color 0.3s ease;
+        }
+        .process-step:hover .process-content { border-color: var(--pink); }
+        .process-content h3 { font-size: 1.4em; color: var(--text-dark); font-weight: 700; }
+        .process-content p { font-size: 1em; color: var(--text-gray); line-height: 1.6; }
+
+        /* --- 8. 新增: 技术栈 --- */
+        #tech { background-color: rgba(255, 255, 255, 0.6); clip-path: polygon(0 5%, 100% 0, 100% 95%, 0 100%); }
+        .tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px; max-width: 800px; margin: auto; }
+        .tech-item {
+            display: flex; justify-content: center; align-items: center; height: 120px; background: var(--light-card-bg); border: 1px solid var(--border-color);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            transition: all 0.3s ease;
+        }
+        .tech-item:hover { border-color: var(--pink); transform: scale(1.1); z-index: 2; box-shadow: 0 0 25px rgba(255, 64, 129, 0.4); /* MODIFIED: Hover color changed to pink */ }
+        .tech-item img { max-width: 50%; filter: grayscale(100%); transition: filter 0.3s ease; }
+        .tech-item:hover img { filter: grayscale(0%); }
+
+        /* --- 9. 新增: 联系我们 --- */
+        .contact-wrapper { display: flex; gap: 50px; }
+        .contact-info, .contact-form { flex: 1; }
+        .contact-info h3 { font-size: 2em; margin-bottom: 20px; }
+        .info-item { display: flex; align-items: center; margin-bottom: 25px; }
+        .info-item svg { width: 24px; height: 24px; color: var(--pink); margin-right: 20px; }
+        .form-group { margin-bottom: 20px; }
+        input, textarea {
+            width: 100%; padding: 15px; background: var(--light-bg); border: 1px solid var(--border-color); color: var(--text-dark); font-family: var(--font-main); font-size: 1em;
+            clip-path: polygon(0 5px, 5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+            transition: border-color 0.3s ease;
+        }
+        input:focus, textarea:focus { outline: none; border-color: var(--pink); /* MODIFIED: Focus color changed to pink */ }
+        textarea { resize: vertical; min-height: 120px; }
+
+        /* --- 10. 页脚 --- */
+        footer { text-align: center; padding: 50px 20px; background-color: var(--text-dark); color: var(--text-gray); margin-top: 80px; position: relative; z-index: 5; }
+        footer p { margin-bottom: 10px; }
+        footer .logo-footer { font-weight: 700; color: var(--light-bg); }
+        footer .logo-footer span { color: var(--pink); }
+
+        /* --- 11. 响应式 --- */
+        @media (max-width: 768px) {
+            .container { padding: 80px 0; }
+            .hero-content h1 { font-size: 2.8em; }
+            .hero-content p { font-size: 1.1em; }
+            .section-title { font-size: 2.5em; }
+            .menu-toggle { display: block; z-index: 101; font-size: 2em; cursor: pointer; color: var(--pink); }
+            header { padding: 15px 5%; }
+            nav ul { position: fixed; top: 0; right: 0; width: 70%; height: 100vh; background: var(--light-card-bg); box-shadow: -5px 0 20px rgba(0,0,0,0.1); flex-direction: column; justify-content: center; align-items: center; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1); }
+            nav ul.active { transform: translateX(0); }
+            nav li { margin: 25px 0; }
+            .process-timeline::after { left: 30px; }
+            .process-step { width: 100%; padding-left: 70px; padding-right: 20px; }
+            .process-step.left, .process-step.right { left: 0; }
+            .process-step::after { left: 20px; }
+            .contact-wrapper { flex-direction: column; }
+        }
+    </style>
 </head>
 <body>
-<h1>Constructing</h1>
+    <div id="particles-js"></div>
+
+    <header id="header">
+        <a href="#home" class="logo">Errorsia<span>Yusulif</span></a>
+        <nav>
+            <ul id="nav-list">
+                <li><a href="#home">主页</a></li>
+                <li><a href="#services">产品</a></li>
+                <li><a href="#process">历史</a></li>
+                <li><a href="#tech">技术栈</a></li>
+                <li><a href="#contact">联系我们</a></li>
+            </ul>
+        </nav>
+        <div class="menu-toggle" id="menu-toggle">☰</div>
+    </header>
+
+    <main>
+        <!-- 首页 Hero -->
+        <section id="home">
+            <div class="container hero-content reveal">
+                <h1>EXCEPTION IGNITES<br><span class="highlight-gradient">EVOLUTION</span></h1>
+                <p>我们是Errorsia Yusulif Studio，我们致力于开发更加先进且人性化的工具软件</p>
+                <a href="#services" class="btn-cyber">查看我们的项目</a>
+            </div>
+        </section>
+
+        <!-- 服务介绍 -->
+        <section id="services">
+            <div class="container">
+                <h2 class="section-title reveal">我们的产品</h2>
+                <div class="services-grid">
+                    <div class="service-card reveal">
+                        <div class="service-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17.842 2.458-1.001 9.429a2 2 0 0 0 .158 3.737l5.442 1.815 1.815 5.441a2 2 0 0 0 3.737.158l6.971-18.843a2 2 0 0 0-2.28-2.28Z"/></svg></div>
+                        <h3>JIV ToolKit</h3>
+                        <p>一站式的机房工具箱</p>
+                    </div>
+                    <div class="service-card reveal">
+                        <div class="service-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M7 21H3V8l10-7 10 7v13h-4v-7h-6v7Zm-2-2h2v-7h10v7h2V9l-8-5.5L5 9v10Z"/></svg></div>
+                        <h3>EYVirusKiller</h3>
+                        <p>简洁、美观、易用的杀毒工具</p>
+                    </div>
+                    <div class="service-card reveal">
+                        <div class="service-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="m16 9 4.95 5.94-1.32 1.58-4.95-4.13-1.55 1.86L18 19.5 12 23l-6-3.5 4.87-5.25-1.55-1.86-4.95 4.13L3.05 14.94 8 9l4 5 4-5ZM12 1 8 5h3v4h2V5h3l-4-4Z"/></svg></div>
+                        <h3>Project:JYN</h3>
+                        <p>给专业人士的机房工具箱</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 我们的流程 -->
+        <section id="process">
+            <div class="container">
+                <h2 class="section-title reveal">我们的历史</h2>
+                <div class="process-timeline">
+                    <div class="process-step left reveal">
+                        <div class="process-content">
+                            <h3>01. 创立</h3>
+                            <p>2022-9-10 CS2B Studio成立，这是Yusulif Studio的前身.</p>
+                            <p>2023-10 XYZ Studio成立，这是Errorsia Studio的前身</p>
+                        </div>
+                    </div>
+                    <div class="process-step right reveal">
+                        <div class="process-content">
+                            <h3>02. 发展</h3>
+                            <p>两家工作室都有优秀的开发经验，它们的代表作——NVT与XYZVK系列的产品都取得了优异的成绩</p>
+                        </div>
+                    </div>
+                    <div class="process-step left reveal">
+                        <div class="process-content">
+                            <h3>03. 融合</h3>
+                            <p>2025年6月，Errorsia Studio与Yusulif Studio正式启动长期合作与整合工作，Errorsia Yusulif Studio正式成立</p>
+                        </div>
+                    </div>
+                    <div class="process-step right reveal">
+                        <div class="process-content">
+                            <h3>04. 展望</h3>
+                            <p>我们正在开发全新的旗舰产品——JIV Toolkit。尽情期待！</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 技术栈 -->
+        <section id="tech">
+            <div class="container">
+                <h2 class="section-title reveal">我们的技术栈</h2>
+                <div class="tech-grid">
+                    <div class="tech-item reveal"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" alt="Python"></div>
+                    <div class="tech-item reveal"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg" alt="C"></div>
+                    <div class="tech-item reveal"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg" alt="SQL"></div>
+                    <div class="tech-item reveal"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" alt="Git"></div>
+                    <div class="tech-item reveal"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg" alt="Git"></div>
+                    <!--<div class="tech-item reveal"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" alt="React"></div>-->
+                    <!--<div class="tech-item reveal"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vuejs/vuejs-original.svg" alt="Vue"></div>-->
+                    <!--<div class="tech-item reveal"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apple/apple-original.svg" alt="Apple iOS"></div>-->
+                    <!--<div class="tech-item reveal"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/android/android-plain.svg" alt="Android"></div>-->
+                    <!--<div class="tech-item reveal"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" alt="Node.js"></div>-->
+                    <!--<div class="tech-item reveal"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/figma/figma-original.svg" alt="Figma"></div>-->
+                    <!--<div class="tech-item reveal"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" alt="Docker"></div>-->
+                </div>
+            </div>
+        </section>
+        
+        <!-- 联系我们 -->
+        <section id="contact">
+            <div class="container">
+                <h2 class="section-title reveal">联系我们</h2>
+                <div class="contact-wrapper">
+                    <div class="contact-info reveal">
+                        <h3>想要联系我们？</h3>
+                        <p style="margin-bottom: 30px; color: var(--text-gray);">有关于项目的意见或仅仅是想要问好？我们很乐意与你交流。</p>
+                        <div class="info-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.589 2 4 5.589 4 10c0 6.5 8 12 8 12s8-5.5 8-12c0-4.411-3.589-8-8-8Zm0 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z"/></svg>
+                            <span>南夫拉斯科技园B楼404室</span>
+                        </div>
+                        <div class="info-item">
+                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.414V18.586a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5.414l-8.082 5.546a3 3 0 0 1-3.836 0L3 5.414ZM20.414 3H3.586a2 2 0 0 0-1.523 3.328l7.973 5.46a1 1 0 0 0 1.274 0l7.973-5.46A2 2 0 0 0 20.414 3Z"/></svg>
+                            <span>feedback@elysianrealm.xyz</span>
+                        </div>
+                    </div>
+                    <form class="contact-form reveal" action="#">
+                         <div class="form-group">
+                            <input type="text" name="name" placeholder="Your Name" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" name="email" placeholder="Your Email" required>
+                        </div>
+                        <div class="form-group">
+                            <textarea name="message" placeholder="Your Project Details..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn-cyber">Send Message</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <p class="logo-footer">Erroria<span>Yusulif</span> Studio</p>
+        <p>© 2025 - Exception Ignites Evolution.</p>
+    </footer>
+    
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        // --- 1. Particles.js 初始化 (亮色主题适配 - 粉色增强) ---
+        particlesJS('particles-js', {
+            "particles": {
+                "number": { "value": 120, "density": { "enable": true, "value_area": 800 } }, // MODIFIED: Increased particle count
+                "color": { "value": "#5A677D" }, // Subtle gray particles
+                "shape": { "type": "circle" },
+                "opacity": { "value": 0.4, "random": true },
+                "size": { "value": 3, "random": true },
+                "line_linked": { "enable": true, "distance": 150, "color": "#FF4081", "opacity": 0.3, "width": 1 }, // MODIFIED: Changed link color to pink
+                "move": { "enable": true, "speed": 1, "direction": "none", "random": true, "straight": false, "out_mode": "out" }
+            },
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": false }, "resize": true },
+                "modes": {
+                    "grab": { "distance": 140, "line_linked": { "opacity": 0.5 } }
+                }
+            },
+            "retina_detect": true
+        });
+
+        // --- 2. 导航栏滚动效果 ---
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            header.classList.toggle('scrolled', window.scrollY > 50);
+        });
+
+        // --- 3. 移动端菜单开关 ---
+        const menuToggle = document.getElementById('menu-toggle');
+        const navList = document.getElementById('nav-list');
+        menuToggle.addEventListener('click', () => navList.classList.toggle('active'));
+        document.querySelectorAll('#nav-list a').forEach(link => {
+            link.addEventListener('click', () => navList.classList.remove('active'));
+        });
+
+        // --- 4. 滚动入场动画 ---
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, {
+            threshold: 0.1 // 元素可见10%时触发
+        });
+
+        document.querySelectorAll('.reveal').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
 </body>
 </html>
