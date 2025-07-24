@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JIV Toolkit - 为校园环境而生的增强工具</title>
+    <style>
+        /* --- 全局与基础设定 --- */
+        :root {
+            --primary-color: #FF69B4; /* 亮粉色 */
+            --accent-color: #00BFFF;  /* 深天蓝/点缀色 */
+            --white-color: #FFFFFF;
+            --dark-color: #121212;
+            --text-color: #333333;
+            --light-bg-color: rgba(255, 255, 255, 0.4); /* MODIFIED: 增加了透明度 */
+            --border-color: rgba(255, 105, 180, 0.4);
+            --font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--white-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+            line-height: 1.7;
+        }
+        
+        /* --- 特效: 动态粒子背景 --- */
+        #particle-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9eef7 100%);
+        }
+
+        /* --- 特效: 滚动进度条 --- */
+        #scroll-progress-bar {
+            position: fixed;
+            top: 0; left: 0; height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            width: 0%;
+            z-index: 9999;
+            transition: width 0.1s linear;
+        }
+
+        /* --- 开屏动画 (优化版) --- */
+        #splash-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--dark-color);
+            color: var(--white-color);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9998;
+            flex-direction: column;
+            font-family: 'Courier New', Courier, monospace;
+            transition: opacity 0.4s ease-in; /* 缩短淡出时间 */
+        }
+
+        #splash-content { text-align: left; width: 80%; max-width: 500px; }
+        #splash-content p { margin-bottom: 5px; white-space: nowrap; overflow: hidden; width: 0; animation: typing 0.3s steps(40, end) forwards; opacity: 0; }
+        #splash-logo { margin-top: 20px; opacity: 0; transition: opacity 0.4s; color: var(--primary-color); font-size: 2rem; font-weight: bold; letter-spacing: 2px; }
+        #progress-bar-container { width: 80%; max-width: 500px; height: 2px; background-color: #333; margin-top: 15px; }
+        #progress-bar { width: 0%; height: 100%; background-color: var(--primary-color); transition: width 1.2s ease-in-out; }
+        @keyframes typing { from { width: 0; opacity: 1; } to { width: 100%; opacity: 1; } }
+
+        #main-content { visibility: hidden; opacity: 0; transition: opacity 0.5s ease-in; }
+        body.loaded #main-content { visibility: visible; opacity: 1; }
+        body.loaded #splash-screen { opacity: 0; pointer-events: none; }
+        
+        /* --- 通用样式 --- */
+        .container {
+            width: 95%;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 120px 40px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 70px;
+            font-size: 2.5rem;
+            color: var(--dark-color);
+            position: relative;
+        }
+        .section-title::after { content: ''; position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background-color: var(--primary-color); }
+
+        /* --- 导航栏 --- */
+        .navbar {
+            position: fixed;
+            top: 3px; left: 0; width: 100%;
+            padding: 15px 5%;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 1000;
+            transition: background-color 0.3s, backdrop-filter 0.3s, border-bottom 0.3s;
+        }
+        .navbar.scrolled { background-color: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0, 0, 0, 0.08); }
+        .nav-logo { font-size: 1.5rem; font-weight: bold; color: var(--dark-color); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .nav-logo-svg { width: 28px; height: 28px; fill: var(--primary-color); }
+        .nav-logo span { color: var(--primary-color); }
+        .nav-links { list-style: none; display: flex; gap: 35px; }
+        .nav-links a { text-decoration: none; color: var(--text-color); font-weight: 600; position: relative; padding: 5px 0; transition: color 0.3s; }
+        .nav-links a::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 0; height: 2px; background-color: var(--primary-color); transition: width 0.3s, left 0.3s; }
+        .nav-links a:hover { color: var(--primary-color); }
+        .nav-links a:hover::after { width: 100%; left: 0; transform: translateX(0); }
+        
+        /* --- Hero Section --- */
+        .hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--dark-color); }
+        .hero-content { position: relative; z-index: 2; padding: 0 20px; }
+        .hero-version-tag { display: inline-block; background-color: rgba(255, 105, 180, 0.1); color: var(--primary-color); padding: 8px 20px; font-weight: bold; border-radius: 20px; margin-bottom: 25px; border: 1px solid var(--border-color); }
+        .hero-title {
+            font-size: 3.8rem;
+            margin-bottom: 25px;
+            line-height: 1.25;
+            text-transform: uppercase;
+        }
+        .hero-title .char { display: inline-block; opacity: 0; transform: translateY(25px); animation: char-reveal 0.5s forwards; }
+        @keyframes char-reveal { to { opacity: 1; transform: translateY(0); } }
+
+        .hero-title span { color: var(--primary-color); }
+        .hero-subtitle { font-size: 1.2rem; max-width: 650px; margin: 0 auto 45px; color: #555; }
+        
+        /* --- 优化版按钮 --- */
+        .btn {
+            position: relative;
+            text-decoration: none; color: var(--white-color);
+            background: var(--primary-color);
+            padding: 14px 40px;
+            font-weight: bold;
+            display: inline-block;
+            border: none; cursor: pointer;
+            clip-path: polygon(15px 0%, 100% 0%, calc(100% - 15px) 100%, 0% 100%);
+            transition: color 0.3s;
+            overflow: hidden;
+        }
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+            transition: left 0.4s ease;
+        }
+        .btn:hover::before { left: 100%; }
+        .btn.disabled { background-color: #aaa; cursor: not-allowed; }
+        .btn.disabled::before { display: none; }
+
+
+        /* --- 内容板块通用背景 --- */
+        .content-section {
+            background-color: var(--light-bg-color);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        /* --- 核心特性 (动画重构) --- */
+        #features { clip-path: polygon(0 0, 100% 5%, 100% 100%, 0 95%); }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; }
+        
+        .feature-card {
+            background-color: transparent;
+            padding: 4px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(50px);
+            position: relative;
+            transition: transform 0.3s;
+            overflow: hidden;
+        }
+        .feature-card.visible { animation: fadeInUp 0.8s forwards; }
+
+        .feature-card-inner {
+            padding: 35px 30px;
+            position: relative;
+            background-color: var(--light-bg-color);
+            height: 100%;
+            transition: background-color 0.3s;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border: 2px solid var(--primary-color);
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.4s, transform 0.4s;
+        }
+        .feature-card::after {
+             content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: linear-gradient( to right,
+                rgba(255,255,255,0) 0%,
+                rgba(255,255,255,0.2) 50%,
+                rgba(255,255,255,0) 100%
+            );
+            transform: rotate(45deg);
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .feature-card:hover::before { opacity: 1; transform: scale(1); }
+        .feature-card:hover::after { opacity: 1; animation: scan 1.5s linear infinite; }
+        @keyframes scan { 0% { top: -50%; } 100% { top: 50%; } }
+        
+        .feature-card .feature-content { transition: transform 0.4s; }
+        .feature-card:hover .feature-content { transform: translateY(-10px); }
+        
+        .feature-icon { width: 50px; height: 50px; margin-bottom: 20px; fill: var(--primary-color); transition: fill 0.3s; }
+        .feature-card:hover .feature-icon { fill: var(--accent-color); }
+        .feature-card h3 { color: var(--primary-color); margin-bottom: 15px; font-size: 1.3rem; transition: color 0.3s; }
+        .feature-card:hover h3 { color: var(--accent-color); }
+        .feature-card p { font-size: 0.95rem; color: #444; }
+
+
+        /* --- 展示板块 --- */
+        #showcase { clip-path: polygon(0 5%, 100% 0, 100% 100%, 0 100%);}
+        .showcase-content { display: flex; align-items: center; gap: 50px; flex-wrap: wrap; }
+        .showcase-text { flex: 1; min-width: 300px; opacity: 0; transform: translateX(-50px); }
+        .showcase-text.visible { animation: slideInLeft 0.8s forwards; }
+        .showcase-text h2 { font-size: 2.2rem; margin-bottom: 20px; }
+        .showcase-mockup-container { flex: 1.2; min-width: 300px; position: relative; height: 400px; opacity: 0; transform: scale(0.9); }
+        .showcase-mockup-container.visible { animation: zoomIn 0.8s forwards; }
+        .showcase-mockup {
+            width: 100%; height: 100%;
+            background: linear-gradient(160deg, #2D3748 0%, #1A202C 100%);
+            border: 1px solid #4A5568; padding: 15px; display: flex; gap: 15px;
+        }
+        .mockup-sidebar { width: 150px; height: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .mockup-logo { height: 40px; background: var(--primary-color); clip-path: polygon(0 0, 100% 0, 80% 100%, 0% 100%);}
+        .mockup-menu-item { height: 30px; background: #2D3748; opacity: 0.8; }
+        .mockup-menu-item.active { background: var(--primary-color); opacity: 1; }
+        .mockup-main { flex: 1; height: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .mockup-header { height: 40px; background: #2D3748; }
+        .mockup-content-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .mockup-widget { background: #2D3748; opacity: 0.6; }
+        .mockup-widget:first-child { grid-row: span 2; background-color: var(--accent-color); opacity: 0.8;}
+
+        /* --- 开发路线图 (新版网格布局) --- */
+        #roadmap { clip-path: polygon(0 0, 100% 5%, 100% 95%, 0 100%); }
+        .roadmap-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            position: relative;
+        }
+        .roadmap-stage {
+            padding: 35px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.4);
+            opacity: 0;
+            transform: translateY(40px);
+            position: relative;
+        }
+        .roadmap-stage.visible { animation: fadeInUp 0.6s forwards; }
+        .roadmap-stage:nth-child(2).visible { animation-delay: 0.2s; }
+        .roadmap-stage:nth-child(3).visible { animation-delay: 0.4s; }
+
+        .roadmap-stage:not(:last-child)::after {
+            content: '→';
+            position: absolute;
+            right: -28px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2rem;
+            color: var(--primary-color);
+        }
+        
+        .roadmap-stage h3 { color: var(--primary-color); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
+        .roadmap-stage .tag { font-weight: bold; color: var(--accent-color); font-size: 0.9rem; }
+        
+        @media (max-width: 768px) {
+            .roadmap-grid { grid-template-columns: 1fr; gap: 50px; }
+            .roadmap-stage:not(:last-child)::after {
+                right: 50%;
+                top: auto;
+                bottom: -35px;
+                transform: translateX(50%) rotate(90deg);
+            }
+        }
+
+
+        /* --- 下载板块 --- */
+        #download { clip-path: polygon(0 5%, 100% 0, 100% 100%, 0 100%); }
+        .download-card {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px;
+            text-align: center;
+            border-top: 4px solid var(--primary-color);
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        .download-card.visible { animation: zoomIn 0.8s forwards; }
+        .download-card h2 { font-size: 2rem; margin-bottom: 10px; }
+        .download-version { color: #888; margin-bottom: 30px; }
+        .download-buttons { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 30px; }
+
+        /* --- FAQ --- */
+        #faq { clip-path: polygon(0 0, 100% 5%, 100% 100%, 0 100%); padding-bottom: 150px; margin-bottom: -100px; }
+        .faq-accordion {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .faq-item { border-bottom: 1px solid var(--border-color); margin-bottom: 15px; opacity: 0; transform: translateY(30px); }
+        .faq-item.visible { animation: fadeInUp 0.6s forwards; }
+        .faq-question { width: 100%; background: none; border: none; text-align: left; padding: 15px 5px; font-size: 1.1rem; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: var(--dark-color); }
+        .faq-question:hover { color: var(--primary-color); }
+        .faq-arrow { transition: transform 0.3s; font-size: 1.5rem; color: var(--primary-color); }
+        .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out; padding: 0 15px; }
+        .faq-item.active .faq-answer { max-height: 300px; padding: 0 15px 15px; }
+        .faq-item.active .faq-arrow { transform: rotate(180deg); }
+
+        /* --- 页脚 --- */
+        .footer {
+            background-color: var(--dark-color);
+            color: var(--white-color);
+            padding: 150px 0 40px;
+            position: relative;
+        }
+        .footer-content { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px; margin-bottom: 40px; }
+        .footer-about, .footer-links { flex: 1; min-width: 250px; }
+        .footer-about h3, .footer-links h3 { color: var(--primary-color); margin-bottom: 15px; }
+        .footer-links ul { list-style: none; }
+        .footer-links ul li a { color: #ccc; text-decoration: none; transition: color 0.3s, padding-left 0.3s; display: block; padding: 5px 0; }
+        .footer-links ul li a:hover { color: var(--primary-color); padding-left: 10px; }
+        .footer-bottom { text-align: center; padding-top: 20px; border-top: 1px solid #444; font-size: 0.9rem; color: #888; }
+        
+        /* --- 动画效果 --- */
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInLeft { to { opacity: 1; transform: translateX(0); } }
+        @keyframes zoomIn { to { opacity: 1; transform: scale(1); } }
+
+    </style>
+</head>
+<body>
+
+    <div id="scroll-progress-bar"></div>
+    <canvas id="particle-canvas"></canvas>
+    
+    <div id="splash-screen">
+        <div id="splash-content">
+            <p style="animation-delay: 0.1s;">> Mounting JIV Kernel (JIV Core)...</p>
+            <p style="animation-delay: 0.3s;">> Loading environment modules... [OK]</p>
+            <p style="animation-delay: 0.5s;">> Calibrating UI vectors...</p>
+            <p style="animation-delay: 0.7s;">> System handshake complete.</p>
+            <p style="animation-delay: 0.9s;">> Welcome to JIV Toolkit.</p>
+            <div id="progress-bar-container"><div id="progress-bar"></div></div>
+            <div id="splash-logo" style="animation-delay: 2.0s;">JIV TOOLKIT</div>
+        </div>
+    </div>
+    
+    <div id="main-content">
+        <header class="navbar" id="navbar">
+            <a href="#hero" class="nav-logo">
+                <svg class="nav-logo-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L1 9l11 7 11-7L12 2zm0 16.5L3.5 12 12 7.5 20.5 12 12 18.5z"/></svg>
+                JIV <span>TOOLKIT</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">核心特性</a></li>
+                <li><a href="#showcase">设计理念</a></li>
+                <li><a href="#roadmap">开发路线</a></li>
+                <li><a href="#download">获取软件</a></li>
+                <li><a href="#faq">常见问题</a></li>
+            </ul>
+        </header>
+
+        <main>
+            <section id="hero" class="hero">
+                <div class="hero-content">
+                    <span class="hero-version-tag">开发中 / Alpha Build</span>
+                    <h1 class="hero-title">
+                        <div class="hero-title-line">告别教师监视</div>
+                        <div class="hero-title-line">沉浸<span>纯净高效</span>的机房环境</div>
+                    </h1>
+                    <p class="hero-subtitle">JIV Toolkit 是一款专为校园环境设计的系统级课堂辅助工具，致力于一键部署个性化环境、无痕清理会话数据，让你在任何机房电脑上都能拥有私有、高效的专属空间，享受信息课的每一分钟。</p>
+                    <a href="#download" class="btn">保持关注</a>
+                </div>
+            </section>
+            
+            <section id="features" class="content-section container">
+                <h2 class="section-title">核心特性</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-card-inner">
+                            <div class="feature-content">
+                                <svg class="feature-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14.12,10H19V8H14.12L12,2.25L9.88,8H5V10H9.88L8,15.75L5,14.5V16.5L8,17.75V22H10V17.75L12,12L14,17.75V22H16V17.75L19,16.5V14.5L16,15.75L14.12,10Z"/></svg>
+                                <h3>环境快速部署</h3>
+                                <p>预设你的学习环境，一键配置常用软件与个性化设置。告别重复的手动调整与教师机监控，即刻进入高效的学习状态。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                         <div class="feature-card-inner">
+                            <div class="feature-content">
+                                <svg class="feature-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15,16H17V17H15V16M15,13H17V14H15V13M11,16H13V17H11V16M11,13H13V14H11V13M7,16H9V17H7V16M7,13H9V14H7V13M19,21H5A2,2 0 0,1 3,19V7H21V19A2,2 0 0,1 19,21M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V6H21V5A2,2 0 0,0 19,3Z"/></svg>
+                                <h3>会话无痕清理</h3>
+                                <p>下课后，一键清除所有操作痕迹，包括临时文件、浏览器历史与缓存。轻松保护个人隐私，将电脑恢复至初始状态。</p>
+                            </div>
+                         </div>
+                    </div>
+                    <div class="feature-card">
+                         <div class="feature-card-inner">
+                             <div class="feature-content">
+                                <svg class="feature-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2A10,10 0 0,1 22,12M11,6V11H6V13H11V18H13V13H18V11H13V6H11Z"/></svg>
+                                <h3>便携应用中心</h3>
+                                <p>在受限环境中无缝启动预置的绿色便携应用。无需管理员权限，你需要的“学习”和摸鱼工具随时待命。</p>
+                            </div>
+                         </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="showcase" class="content-section container">
+                <div class="showcase-content">
+                    <div class="showcase-text">
+                        <h2>为体验与美学而生</h2>
+                        <p>设计灵感源自前沿的UI设计规范，我们追求信息的高度整合与操作的极致流畅，旨在创造一个既赏心悦目又直观高效的交互终端。</p>
+                        <p>每个模块都经过精心设计，确保核心功能触手可及，让你能专注于创造本身，而非工具的操作。</p>
+                        <p>我们也提供了主题系统，内置了大量不同风格的主题，同时支持第三方主题导入，确保能够满足各个不同审美的人群都能找到自己喜爱的主题</p>
+                    </div>
+                    <div class="showcase-mockup-container">
+                        <div class="showcase-mockup">
+                            <div class="mockup-sidebar">
+                                <div class="mockup-logo"></div>
+                                <div class="mockup-menu-item active"></div>
+                                <div class="mockup-menu-item"></div>
+                                <div class="mockup-menu-item"></div>
+                            </div>
+                            <div class="mockup-main">
+                                <div class="mockup-header"></div>
+                                <div class="mockup-content-grid">
+                                    <div class="mockup-widget"></div>
+                                    <div class="mockup-widget"></div>
+                                    <div class="mockup-widget"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="roadmap" class="content-section container">
+                <h2 class="section-title">开发路线图</h2>
+                <div class="roadmap-grid">
+                    <div class="roadmap-stage">
+                        <h3>Alpha 阶段</h3>
+                        <span class="tag">进行中</span>
+                        <p>实现核心功能：环境部署、UI设计、机房管理系统控制、在线与离线更新。专注于稳定性与核心逻辑的构建。</p>
+                    </div>
+                     <div class="roadmap-stage">
+                        <h3>Beta 阶段</h3>
+                        <span class="tag">计划中</span>
+                        <p>UI界面全面迭代，引入更多动效与定制化选项、实现更多机房实用功能。开放小范围公开测试，收集反馈。</p>
+                    </div>
+                     <div class="roadmap-stage">
+                        <h3>正式版 v1.0</h3>
+                        <span class="tag">规划中</span>
+                        <p>发布稳定版本。扩展应用库，加入脚本市场、插件市场与更多高级自定义功能，完善用户文档。</p>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="download" class="content-section container">
+                 <div class="download-card">
+                    <h2>获取 JIV Toolkit</h2>
+                    <p class="download-version">当前版本: Alpha Build (内部测试) | 系统要求: Windows 10/11</p>
+                    <p>感谢您的关注！软件正处于早期开发阶段，公开版本敬请期待。</p>
+                    <div class="download-buttons"><a href="#" class="btn disabled">下载渠道暂未开放</a></div>
+                </div>
+            </section>
+            
+            <section id="faq" class="content-section container">
+                <h2 class="section-title">常见问题</h2>
+                <div class="faq-accordion">
+                    <div class="faq-item"><button class="faq-question"><span>JIV Toolkit 是什么？</span><span class="faq-arrow">▼</span></button><div class="faq-answer"><p>JIV Toolkit 是一个专为学生设计的、用于在学校机房的公共计算机环境中摆脱教师端控制，快速建立个人工作环境的辅助工具。它的目标是简化重复性操作，保护隐私，并在有限权限下扩展PC的功能。</p></div></div>
+                    <div class="faq-item"><button class="faq-question"><span>在学校使用这个软件是否安全合规？</span><span class="faq-arrow">▼</span></button><div class="faq-answer"><p>JIV Toolkit 在设计时严格遵循“最小权限”原则。它作为便携程序运行，专注于文件管理、环境配置与启动其他绿色软件，不会修改系统核心或试图绕过安全策略。我们致力于提供安全可靠的工具，但仍建议您在使用前了解并遵守所在学校的具体管理规定。</p></div></div>
+                    <div class="faq-item"><button class="faq-question"><span>软件何时发布？</span><span class="faq-arrow">▼</span></button><div class="faq-answer"><p>目前项目处于早期的 Alpha 开发阶段。我们暂时没有一个确切的发布日期，但您可以关注我们的更新以获取最新消息。我们希望在功能足够稳定和完善后再发布公开版本。</p></div></div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-about"><h3>关于 JIV Toolkit</h3><p>一个由Errorsia Yusulif Studio发起的项目，致力于用技术解决校园生活中的实际问题。</p></div>
+                    <div class="footer-links"><h3>快速链接</h3><ul><li><a href="#features">核心特性</a></li><li><a href="#roadmap">开发路线</a></li><li><a href="./PrivacyPolicy.pdf">用户协议</a></li><li><a href="mailto:feedback@elysianrealm.xyz">联系我们</a></li></ul></div>
+                </div>
+                <div class="footer-bottom"><p>© 2025 JIV Toolkit. All Rights Reserved. </p></div>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const body = document.body;
+            const splashScreen = document.getElementById('splash-screen');
+            const mainContent = document.getElementById('main-content');
+
+            // --- 开屏动画逻辑 ---
+            setTimeout(() => { document.getElementById('progress-bar').style.width = '100%'; }, 100);
+            setTimeout(() => { document.getElementById('splash-logo').style.opacity = '1'; }, 1200);
+
+            const totalSplashScreenTime = 1800;
+            setTimeout(() => {
+                body.classList.add('loaded');
+                animateHeroTitle();
+            }, totalSplashScreenTime);
+
+            // --- 导航栏滚动效果 ---
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                navbar.classList.toggle('scrolled', window.scrollY > 50);
+            });
+            
+            // --- 滚动进度条 ---
+            const scrollProgressBar = document.getElementById('scroll-progress-bar');
+            function updateProgressBar() {
+                const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+                if (scrollHeight <= clientHeight) return;
+                const scrollPercent = (scrollTop / (scrollHeight - clientHeight)) * 100;
+                scrollProgressBar.style.width = `${scrollPercent}%`;
+            }
+            window.addEventListener('scroll', updateProgressBar);
+            
+            // --- [优化] 动态粒子背景与鼠标联动 ---
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            let particlesArray;
+
+            // 1. 定义鼠标对象和交互半径
+            const mouse = {
+                x: null,
+                y: null,
+                radius: 150 // MODIFIED: 加大了鼠标影响范围
+            };
+
+            window.addEventListener('mousemove', (event) => {
+                mouse.x = event.x;
+                mouse.y = event.y;
+            });
+            window.addEventListener('mouseout', () => {
+                mouse.x = null;
+                mouse.y = null;
+            });
+
+            class Particle {
+                constructor(x, y, dirX, dirY, size, color) {
+                    this.x = x; this.y = y; this.directionX = dirX; this.directionY = dirY; this.size = size; this.color = color;
+                }
+                draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false); ctx.fillStyle = this.color; ctx.fill(); }
+                update() {
+                    if (this.x > canvas.width || this.x < 0) { this.directionX = -this.directionX; }
+                    if (this.y > canvas.height || this.y < 0) { this.directionY = -this.directionY; }
+                    this.x += this.directionX; this.y += this.directionY;
+                    this.draw();
+                }
+            }
+            
+            function initParticles() {
+                particlesArray = [];
+                let num = (canvas.height * canvas.width) / 9000; // MODIFIED: 增加了粒子/线条数量
+                for (let i = 0; i < num; i++) {
+                    let size = (Math.random() * 1.5) + 1;
+                    let x = Math.random() * (innerWidth - size * 2) + size;
+                    let y = Math.random() * (innerHeight - size * 2) + size;
+                    let dirX = (Math.random() * .4) - .2;
+                    let dirY = (Math.random() * .4) - .2;
+                    particlesArray.push(new Particle(x, y, dirX, dirY, size, 'rgba(51, 51, 51, 0.3)'));
+                }
+            }
+            
+            function connectParticles() {
+                for (let a = 0; a < particlesArray.length; a++) {
+                    for (let b = a; b < particlesArray.length; b++) {
+                        let dist = ((particlesArray[a].x - particlesArray[b].x) ** 2) + ((particlesArray[a].y - particlesArray[b].y) ** 2);
+                        
+                        // 如果粒子间距离在范围内，则绘制连接线
+                        if (dist < (canvas.width / 8) * (canvas.height / 8)) {
+                            let opacity = 1 - (dist / 25000);
+                            
+                            // 2. 检查线条是否应高亮
+                            let isHighlighted = false;
+                            if (mouse.x && mouse.y) {
+                                // 计算鼠标到两个端点的距离
+                                const distToA = Math.hypot(particlesArray[a].x - mouse.x, particlesArray[a].y - mouse.y);
+                                const distToB = Math.hypot(particlesArray[b].x - mouse.x, particlesArray[b].y - mouse.y);
+                                // 如果任一端点在鼠标影响范围内，则高亮
+                                if (distToA < mouse.radius || distToB < mouse.radius) {
+                                    isHighlighted = true;
+                                }
+                            }
+                            
+                            // 3. 根据是否高亮设置不同颜色
+                            if (isHighlighted) {
+                                ctx.strokeStyle = `rgba(255, 105, 180, ${opacity})`; // 高亮粉色
+                            } else {
+                                ctx.strokeStyle = `rgba(51, 51, 51, ${opacity / 2})`; // 默认灰色
+                            }
+                            
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            // [FIXED] 修复了原代码中错误的Y坐标引用
+                            ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                            ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            function animateParticles() {
+                requestAnimationFrame(animateParticles);
+                ctx.clearRect(0, 0, innerWidth, innerHeight);
+                particlesArray.forEach(p => p.update());
+                connectParticles();
+            }
+
+            window.addEventListener('resize', () => {
+                canvas.width = innerWidth; canvas.height = innerHeight; initParticles();
+            });
+            
+            initParticles();
+            animateParticles();
+
+            // --- Hero标题动画 ---
+            function animateHeroTitle() {
+                document.querySelectorAll('.hero-title-line').forEach((line, lineIndex) => {
+                    const text = line.textContent;
+                    line.innerHTML = '';
+                    text.split('').forEach((char, charIndex) => {
+                        const span = document.createElement('span');
+                        span.className = 'char';
+                        span.innerHTML = (char === ' ') ? '&nbsp;' : char;
+                        span.style.animationDelay = `${lineIndex * 0.2 + charIndex * 0.03}s`;
+                        line.appendChild(span);
+                    });
+                });
+            }
+
+            // --- 元素入场动画 (Intersection Observer) ---
+            const animatedElements = document.querySelectorAll('.showcase-text, .showcase-mockup-container, .download-card, .faq-item, .feature-card, .roadmap-stage');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+            animatedElements.forEach(el => observer.observe(el));
+
+            // --- FAQ 折叠效果 ---
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.querySelector('.faq-question').addEventListener('click', () => {
+                    const wasActive = item.classList.contains('active');
+                    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+                    if (!wasActive) {
+                        item.classList.add('active');
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>

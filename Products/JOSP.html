@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JOSP - JIV OpenSource Project</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* --- CSS Reset & Global Settings --- */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            transition: background-color 0.4s ease, color 0.4s ease;
+            overflow-x: hidden;
+            position: relative;
+        }
+        h1, h2, h3, h4, .btn, .logo { font-family: 'Orbitron', sans-serif; }
+
+        /* --- Color Palettes (MD3 Generated) --- */
+        :root {
+            /* Light Theme (Seed: #D81B60 - Masculine Pink) */
+            --light-primary: #BC004B; --light-on-primary: #FFFFFF;
+            --light-primary-container: #FFD9DD; --light-on-primary-container: #400014;
+            --light-background: #FCF8F8; --light-on-background: #201A1B;
+            --light-surface: #FCF8F8; --light-on-surface: #201A1B;
+            --light-surface-variant: #F3DDE0; --light-on-surface-variant: #524345;
+            --light-outline: #847375; --light-shadow: #000000;
+            --light-surface-glass: rgba(252, 248, 248, 0.75);
+
+            /* Dark Theme (Seed: #4FC3F7 - Cyber Blue) */
+            --dark-primary: #85CFFF; --dark-on-primary: #00344B;
+            --dark-primary-container: #004C6B; --dark-on-primary-container: #C7E7FF;
+            --dark-background: #101416; --dark-on-background: #E2E2E6;
+            --dark-surface: #101416; --dark-on-surface: #E2E2E6;
+            --dark-surface-variant: #40484D; --dark-on-surface-variant: #C0C8CD;
+            --dark-outline: #8A9297; --dark-shadow: #000000;
+            --dark-surface-glass: rgba(16, 20, 22, 0.7);
+        }
+
+        /* --- Theme Application --- */
+        body {
+            background-color: var(--color-background);
+            color: var(--color-on-background);
+        }
+        [data-theme="light"] {
+            --color-primary: var(--light-primary); --color-on-primary: var(--light-on-primary);
+            --color-primary-container: var(--light-primary-container); --color-on-primary-container: var(--light-on-primary-container);
+            --color-background: var(--light-background); --color-on-background: var(--light-on-background);
+            --color-surface: var(--light-surface); --color-on-surface: var(--light-on-surface);
+            --color-surface-variant: var(--light-surface-variant); --color-on-surface-variant: var(--light-on-surface-variant);
+            --color-outline: var(--light-outline); --color-shadow: var(--light-shadow);
+            --color-surface-glass: var(--light-surface-glass);
+            --color-primary-translucent: hsla(337, 100%, 37%, 0.1);
+        }
+        [data-theme="dark"] {
+            --color-primary: var(--dark-primary); --color-on-primary: var(--dark-on-primary);
+            --color-primary-container: var(--dark-primary-container); --color-on-primary-container: var(--dark-on-primary-container);
+            --color-background: var(--dark-background); --color-on-background: var(--dark-on-background);
+            --color-surface: var(--dark-surface); --color-on-surface: var(--dark-on-surface);
+            --color-surface-variant: var(--dark-surface-variant); --color-on-surface-variant: var(--dark-on-surface-variant);
+            --color-outline: var(--dark-outline); --color-shadow: var(--dark-shadow);
+            --color-surface-glass: var(--dark-surface-glass);
+            --color-primary-translucent: hsla(202, 100%, 76%, 0.1);
+        }
+
+        /* --- Layout & Common Elements --- */
+        .container { width: 90%; max-width: 1200px; margin: 0 auto; padding: 100px 0; }
+        section { position: relative; overflow: hidden; border-bottom: 1px solid var(--color-outline); }
+        section:last-of-type { border-bottom: none; }
+        
+        /* --- Animated Background --- */
+        #dynamic-background {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(var(--color-outline) 1px, transparent 1px), linear-gradient(to right, var(--color-outline) 1px, transparent 1px);
+            background-size: 50px 50px; opacity: 0.07; z-index: -1;
+        }
+
+        /* --- Loader Animation --- */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--color-background);
+            z-index: 9999; display: flex; justify-content: center; align-items: center;
+            transition: opacity 0.5s 1.8s ease, visibility 0.5s 1.8s ease;
+        }
+        #loader.hidden { opacity: 0; visibility: hidden; }
+        .loader-container { position: relative; width: 220px; height: 150px; display: flex; justify-content: center; align-items: center; }
+        .loader-logo {
+            width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 3.8rem;
+            font-weight: 900; color: var(--color-primary); position: relative;
+        }
+        .loader-logo .scan-line {
+            position: absolute; left: -10%; width: 120%; height: 4px;
+            background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+            box-shadow: 0 0 15px var(--color-primary); opacity: 0;
+            animation: scan 1s cubic-bezier(0.23, 1, 0.32, 1) 0.8s forwards;
+        }
+        .loader-logo span { opacity: 0; transition: opacity 0.3s ease; }
+        @keyframes scan {
+            from { top: -10%; opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            to { top: 110%; opacity: 0; }
+        }
+        .loader-shape { position: absolute; border: 2px solid var(--color-primary); animation: assemble 0.8s cubic-bezier(0.76, 0, 0.24, 1) forwards; }
+        .shape1 { top: 0; left: 0; width: 50%; height: 50%; border-right: none; border-bottom: none; transform: translate(-100vw, 0); }
+        .shape2 { top: 0; right: 0; width: 50%; height: 50%; border-left: none; border-bottom: none; transform: translate(100vw, 0); }
+        .shape3 { bottom: 0; left: 0; width: 50%; height: 50%; border-right: none; border-top: none; transform: translate(0, 100vh); }
+        .shape4 { bottom: 0; right: 0; width: 50%; height: 50%; border-left: none; border-top: none; transform: translate(0, -100vh); }
+        @keyframes assemble { to { transform: translate(0, 0); } }
+
+        /* --- Header & Navigation --- */
+        .main-header {
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;
+            padding: 15px 5%; display: flex; justify-content: space-between; align-items: center;
+            transition: background-color 0.3s ease, backdrop-filter 0.3s ease;
+        }
+        .header-scrolled { background-color: var(--color-surface-glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .logo { font-size: 28px; font-weight: 700; color: var(--color-primary); text-decoration: none; }
+        .nav-links { list-style: none; display: flex; align-items: center; gap: 30px; }
+        .nav-links a { text-decoration: none; color: var(--color-on-surface); font-weight: 500; position: relative; padding-bottom: 5px; transition: color 0.3s ease; }
+        .nav-links a::after { content: ''; position: absolute; width: 0; height: 2px; bottom: 0; left: 50%; transform: translateX(-50%); background-color: var(--color-primary); transition: width 0.3s ease; }
+        .nav-links a:hover, .nav-links a.active { color: var(--color-primary); }
+        .nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
+        .theme-switcher { cursor: pointer; background: none; border: none; color: var(--color-on-surface-variant); transition: color 0.3s, transform 0.3s; }
+        .theme-switcher:hover { color: var(--color-primary); transform: rotate(15deg); }
+        .theme-switcher svg { width: 24px; height: 24px; display: none; stroke-width: 2px; }
+        .theme-switcher .active-icon { display: block; }
+
+        /* --- Hero Section & Shine Effect --- */
+        @keyframes text-shine {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(100%); }
+        }
+        #hero { height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; }
+        .hero-content h1 {
+            font-size: clamp(3rem, 10vw, 6rem); font-weight: 900; color: var(--color-primary);
+            position: relative; overflow: hidden;
+        }
+        /* Shine pseudo-element for the hero title */
+        .hero-content h1::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            transform: translateX(-100%);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: text-shine 5s ease-in-out infinite;
+            animation-delay: 2.5s; /* Delay after page load */
+        }
+        .hero-content .subtitle { font-size: clamp(1.1rem, 3vw, 1.5rem); color: var(--color-on-surface-variant); margin-bottom: 40px; max-width: 700px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+        
+        /* --- Buttons --- */
+        .btn {
+            display: inline-block; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: 700;
+            transition: all 0.3s ease; position: relative; overflow: hidden; z-index: 1; border: 2px solid transparent;
+        }
+        /* Shine pseudo-element for buttons on hover */
+        .btn::before {
+            content: ''; position: absolute; top: 0; left: -150%;
+            width: 75%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: skewX(-25deg);
+            transition: left 0.7s ease-in-out;
+        }
+        .btn:hover::before { left: 150%; }
+        .btn-primary { background-color: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
+        .btn-primary:hover { transform: scale(1.05); box-shadow: 0 5px 20px var(--color-primary-translucent); }
+        .btn-secondary { background-color: transparent; color: var(--color-primary); border-color: var(--color-primary); }
+        .btn-secondary:hover { background-color: var(--color-primary); color: var(--color-on-primary); transform: scale(1.05); }
+
+        /* --- Section Title --- */
+        .section-title { text-align: center; margin-bottom: 60px; }
+        .section-title h2 { font-size: 2.8rem; color: var(--color-on-background); position: relative; display: inline-block; padding-bottom: 15px; font-weight: 700; }
+        .section-title h2::after { content: ''; position: absolute; width: 70%; height: 4px; background-color: var(--color-primary); bottom: 0; left: 15%; clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%); }
+        .section-title p { max-width: 600px; margin: 15px auto 0; color: var(--color-on-surface-variant); line-height: 1.7; }
+        
+        /* --- Features Section --- */
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+        .feature-card {
+            background-color: var(--color-surface);
+            background-image: radial-gradient(circle at 100% 0%, var(--color-primary-translucent) 0%, transparent 40%);
+            padding: 30px; border-radius: 12px; text-align: center;
+            border: 1px solid var(--color-outline); transition: transform 0.3s, box-shadow 0.3s; position: relative; overflow: hidden;
+        }
+        .feature-card::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: conic-gradient(transparent, var(--color-primary-translucent), transparent 30%);
+            animation: rotate 4s linear infinite; opacity: 0; transition: opacity 0.3s;
+        }
+        .feature-card:hover { transform: translateY(-10px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        [data-theme="dark"] .feature-card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+        .feature-card:hover::before { opacity: 1; }
+        .feature-card .icon { width: 60px; height: 60px; margin: 0 auto 20px; background-color: var(--color-primary-container); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .feature-card .icon svg { width: 32px; height: 32px; stroke: var(--color-on-primary-container); }
+        .feature-card h3 { font-size: 1.5rem; margin-bottom: 15px; color: var(--color-primary); font-weight: 700; }
+        .feature-card p { line-height: 1.6; color: var(--color-on-surface-variant); }
+
+        /* --- About Section & Project Flow --- */
+        .about-content { display: flex; align-items: center; gap: 50px; }
+        .about-text { flex: 1; }
+        .about-text h3 { color: var(--color-primary); font-size: 1.8rem; margin-bottom: 20px; font-weight: 700;}
+        .about-text p { line-height: 1.8; margin-bottom: 20px; }
+        .project-flow { flex: 1; background-color: var(--color-surface-variant); padding: 30px; border-radius: 12px; position: relative; }
+        .flow-node, .flow-arrow { transition: opacity 0.6s ease, transform 0.6s ease; opacity: 0; transform: translateY(20px); }
+        .flow-node:hover { transform: translateX(5px) !important; border-color: var(--color-primary); }
+        .flow-node { background: var(--color-surface); padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; border-left: 4px solid var(--color-outline); }
+        .flow-node strong { display: block; font-size: 1.2rem; color: var(--color-on-surface); font-weight: 500; }
+        .flow-node span { font-size: 0.9rem; color: var(--color-on-surface-variant); }
+        .flow-node.core { border-color: var(--color-primary); background-color: var(--color-primary-container); }
+        .flow-node.core strong, .flow-node.core span { color: var(--color-on-primary-container); }
+        .flow-arrow { height: 30px; width: 2px; background: var(--color-outline); margin: -5px auto 5px auto; position: relative; }
+        .flow-arrow::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid var(--color-outline); }
+        
+        /* Staggered animation for project flow */
+        .reveal.active .flow-node:nth-of-type(1) { transition-delay: 0.2s; }
+        .reveal.active .flow-arrow:nth-of-type(2) { transition-delay: 0.35s; }
+        .reveal.active .flow-node:nth-of-type(3) { transition-delay: 0.5s; }
+        .reveal.active .flow-arrow:nth-of-type(4) { transition-delay: 0.65s; }
+        .reveal.active .flow-node:nth-of-type(5) { transition-delay: 0.8s; }
+        .reveal.active .flow-node, .reveal.active .flow-arrow { opacity: 1; transform: translateY(0); }
+
+        /* --- Community Section --- */
+        #community { background-color: var(--color-surface-variant); }
+        .community-content { text-align: center; }
+        .community-content .btn { margin-top: 20px; }
+        .github-note { margin: 30px auto 0; max-width: 600px; padding: 20px; background: var(--color-surface); border-radius: 12px; border: 1px solid var(--color-outline); display: flex; align-items: center; gap: 20px; text-align: left; transition: transform 0.3s, border-color 0.3s; }
+        .github-note:hover { transform: translateY(-5px); border-color: var(--color-primary); }
+        .github-note .icon { flex-shrink: 0; }
+        .github-note .icon svg { width: 40px; height: 40px; fill: var(--color-primary); }
+        .github-note h4 { margin-bottom: 5px; font-weight: 700; }
+        
+        /* --- Developer Studio & Footer --- */
+        .studio-section { padding: 80px 5%; text-align: center; background-color: var(--color-primary-container); color: var(--color-on-primary-container); clip-path: polygon(0 10%, 100% 0, 100% 90%, 0 100%); }
+        .studio-section h3 { font-size: 2rem; font-weight: 900; }
+        .studio-section p { max-width: 600px; margin: 15px auto 0; }
+        footer { padding: 40px 5%; text-align: center; color: var(--color-on-surface-variant); border-top: 1px solid var(--color-outline);}
+
+        /* --- Animations & Responsive --- */
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .reveal { transform: translateY(50px); opacity: 0; transition: transform 1.2s cubic-bezier(0.165, 0.84, 0.44, 1), opacity 0.8s cubic-bezier(0.165, 0.84, 0.44, 1); }
+        .reveal.active { transform: translateY(0); opacity: 1; }
+        .menu-toggle { display: none; background: none; border: none; cursor: pointer; z-index: 1001; }
+        .menu-toggle .bar { display: block; width: 25px; height: 3px; margin: 5px auto; transition: all 0.3s ease-in-out; background-color: var(--color-on-surface); }
+        @media (max-width: 768px) {
+            .nav-links { position: fixed; top: 0; right: 0; width: 70%; height: 100vh; background-color: var(--color-surface-glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); flex-direction: column; justify-content: center; transform: translateX(100%); transition: transform 0.3s ease-in-out; }
+            .nav-links.nav-active { transform: translateX(0); }
+            .menu-toggle { display: block; }
+            .menu-toggle.open .bar:nth-child(1) { transform: rotate(-45deg) translate(-5px, 6px); }
+            .menu-toggle.open .bar:nth-child(2) { opacity: 0; }
+            .menu-toggle.open .bar:nth-child(3) { transform: rotate(45deg) translate(-5px, -6px); }
+            .about-content { flex-direction: column-reverse; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+    <div id="loader">
+        <div class="loader-container">
+            <div class="loader-shape shape1"></div><div class="loader-shape shape2"></div><div class="loader-shape shape3"></div><div class="loader-shape shape4"></div>
+            <div class="loader-logo">
+                <div class="scan-line"></div>
+                <span id="loader-char-1">J</span><span id="loader-char-2">O</span><span id="loader-char-3">S</span><span id="loader-char-4">P</span>
+            </div>
+        </div>
+    </div>
+    <div id="dynamic-background"></div>
+
+    <header class="main-header" id="main-header">
+        <a href="#" class="logo">JOSP</a>
+        <nav>
+            <ul class="nav-links">
+                <li><a href="#features" class="nav-link">核心功能</a></li>
+                <li><a href="#about" class="nav-link">项目渊源</a></li>
+                <li><a href="#community" class="nav-link">加入社区</a></li>
+                <button id="theme-switcher" class="theme-switcher" aria-label="切换主题">
+                    <svg id="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+                    <svg id="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+                </button>
+            </ul>
+        </nav>
+        <button class="menu-toggle"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+    </header>
+
+    <main>
+        <section id="hero">
+            <div class="container hero-content reveal">
+                <h1>JOSP</h1>
+                <p class="subtitle">JIV OpenSource Project — 解放创造力，为新一代学生们重塑机房体验。</p>
+                <div><a href="#features" class="btn btn-primary">开始探索</a></div>
+            </div>
+        </section>
+
+        <section id="features">
+            <div class="container reveal">
+                <div class="section-title">
+                    <h2>核心功能</h2>
+                    <p>凝聚社区智慧，为学生量身打造的强大功能。</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7.7c0-1.2-1-2.2-2.2-2.2H4.2C3 5.5 2 6.5 2 7.7v8.6c0 1.2 1 2.2 2.2 2.2h15.6c1.2 0 2.2-1 2.2-2.2V7.7Z"></path><path d="M6 16h12"></path><path d="M12 11v5"></path><path d="M12 5.5V1"></path></svg></div><h3>环境隔离</h3><p>屏蔽教师机的监控与操控，让您的课堂告别被老师监视的烦恼。</p></div>
+                    <div class="feature-card"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></div><h3>实用工具</h3><p>我们内建了大量的实用软件，也支持在线下载更多插件，让您即便离线，也能专注于享受课堂的美好。</p></div>
+                    <div class="feature-card"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></div><h3>实时监控</h3><p>集成式性能监视器与日志系统，实时洞察极域状态，在问题发生时即刻定位，增强程序稳定性。</p></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="about">
+            <div class="container reveal">
+                <div class="section-title"><h2>项目渊源</h2><p>一个源自闭源，最终回馈社区的开源理想。</p></div>
+                <div class="about-content">
+                    <div class="about-text">
+                        <h3>JOSP, JIV 与 ProjectJYN</h3>
+                        <p>JOSP (JIV OpenSource Project) 的诞生，是为了将商业级 JIV Toolkit 的核心能力开放给广大学生与开发者。它的关系类似于安卓开源项目 (AOSP) 与谷歌官方安卓系统 (Google Android OS)。</p>
+                        <p>整个生态由上游的 ProjectJYN 驱动，它为 JIV Toolkit 提供技术支持。而 JOSP 作为社区分支，不仅继承了 JIV Toolkit 的开源部分，也会接收来自 ProjectJYN 的部分前沿功能推送。</p>
+                    </div>
+                    <div class="project-flow">
+                        <div class="flow-node"><strong>ProjectJYN</strong><span>上游项目 | 半开源JIV Core Testing</span></div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node"><strong>JIV Toolkit</strong><span>商业软件 | 闭源JIV Core</span></div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node core"><strong>JOSP</strong><span>社区开源 | 开源OpenJIV Core</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="community">
+            <div class="container reveal">
+                <div class="section-title"><h2>塑造未来，成为我们的一员</h2><p>JOSP 的未来由每一位贡献者决定。我们真诚欢迎您的加入！</p></div>
+                <div class="community-content">
+                    <p>项目正处在高速迭代的早期阶段，您的关注是我们的动力。欢迎订阅我们的 GitHub 仓库，以便在开放贡献时第一时间获得邀请。</p>
+                    <a href="https://github.com" target="_blank" class="btn btn-primary">关注 GitHub 仓库</a>
+                    <div class="github-note">
+                        <div class="icon"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="currentColor"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg></div>
+                        <div><h4>仓库访问说明</h4><p>为保证早期版本的稳定与安全，当前仓库提交需要授权。我们期待在不久的将来与您在代码的世界相遇。</p></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <div class="studio-section">
+            <div class="reveal">
+                <h3>Errorsia Yusulif Studio</h3>
+                <h4>EXCEPTION IGNITES EVOLUTION</h4>
+                <p>我们是Errorsia Yusulif Studio，我们致力于开发更加先进且人性化的工具软件。<br>我们是一群热衷于构建未来的开发者，致力于通过开源力量，为世界带来真正有价值的改变。</p>
+            </div>
+        </div>
+    </main>
+
+    <footer><p>© 2025 Errorsia Yusulif Studio & JOSP Community. All Rights Reserved.</p></footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const body = document.body;
+        const themeSwitcher = document.getElementById('theme-switcher');
+        const sunIcon = document.getElementById('sun-icon');
+        const moonIcon = document.getElementById('moon-icon');
+        const header = document.getElementById('main-header');
+        const menuToggle = document.querySelector('.menu-toggle');
+        const navLinks = document.querySelector('.nav-links');
+        const loader = document.getElementById('loader');
+
+        // --- Loader Logic ---
+        window.addEventListener('load', () => {
+            // Hide loader after all animations finish
+            setTimeout(() => { loader.classList.add('hidden'); }, 2200);
+            
+            // Scanline reveals letters. Timings are synced with the 'scan' animation in CSS.
+            const scanAnimationDuration = 1000; // 1s
+            const scanAnimationDelay = 800;   // 0.8s
+            const timeToStartReveal = scanAnimationDelay + (scanAnimationDuration * 0.2); // Start when scanline is visible
+            const totalRevealTime = scanAnimationDuration * 0.6; // Time scanline is fully visible
+            
+            const chars = [
+                document.getElementById('loader-char-1'),
+                document.getElementById('loader-char-2'),
+                document.getElementById('loader-char-3'),
+                document.getElementById('loader-char-4')
+            ];
+            
+            for(let i = 0; i < chars.length; i++) {
+                setTimeout(() => { chars[i].style.opacity = '1'; }, timeToStartReveal + (i * (totalRevealTime / chars.length)));
+            }
+        });
+
+        // --- Theme Management ---
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const savedTheme = localStorage.getItem('theme');
+        function applyTheme(theme) {
+            body.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            sunIcon.classList.toggle('active-icon', theme === 'light');
+            moonIcon.classList.toggle('active-icon', theme === 'dark');
+        }
+        // Set initial theme: saved > preferred > default (light)
+        applyTheme(savedTheme || (prefersDark ? 'dark' : 'light'));
+        themeSwitcher.addEventListener('click', () => {
+            const newTheme = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+        });
+
+        // --- Header Scroll Effect ---
+        window.addEventListener('scroll', () => { header.classList.toggle('header-scrolled', window.scrollY > 50); });
+
+        // --- Mobile Menu ---
+        menuToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('nav-active');
+            menuToggle.classList.toggle('open');
+        });
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (navLinks.classList.contains('nav-active')) {
+                    navLinks.classList.remove('nav-active');
+                    menuToggle.classList.remove('open');
+                }
+            });
+        });
+
+        // --- Scroll Reveal Animation ---
+        const revealElements = document.querySelectorAll('.reveal');
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+        revealElements.forEach(el => revealObserver.observe(el));
+
+        // --- Nav Link Highlighting on Scroll ---
+        const sections = document.querySelectorAll('section[id]');
+        const navLi = document.querySelectorAll('.nav-links a');
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+            navLi.forEach(a => {
+                a.classList.remove('active');
+                if (a.getAttribute('href').includes(current)) { 
+                    a.classList.add('active'); 
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>
